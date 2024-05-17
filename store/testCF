@@ -1,0 +1,13 @@
+ {
+   "idOperazioneClient": "1",
+     
+    "criteriRicerca": {
+      "codiceFiscale": "QNTSGT90A01H501X"
+    },
+    "datiRichiesta": {
+     "dataRiferimentoRichiesta": "2024-05-16",
+      "motivoRichiesta": "1",
+      "casoUso": "C030"
+    }
+  }
+  
