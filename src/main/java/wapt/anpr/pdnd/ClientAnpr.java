@@ -55,6 +55,7 @@ public class ClientAnpr {
 			String baseUrlC030 = properties.getProperty("baseurlapi_c030");
 			String jsonResponseC030 = sendHttpRequest(baseUrlC030, tokenC030, tokenAgidSignC030, tokenTrackSignC030, encodedBodyC030, jsonInputStringC030);
 			JSONObject jsonObject = new JSONObject(jsonResponseC030);
+
 			String idANPR = jsonObject.getJSONObject("listaSoggetti").getJSONArray("datiSoggetto").getJSONObject(0).getJSONObject("identificativi").getString("idANPR");
 
 			String tokenTrackSignC001 = generateTokenAudit(properties.getProperty("purposeIdPdnd_c001"), properties.getProperty("clientIdPdnd"), properties.getProperty("audTokenAgidJwtSignature_c001"));
@@ -145,17 +146,27 @@ public class ClientAnpr {
 		myURLConnection.setRequestProperty("Agid-JWT-TrackingEvidence", tokenTrackSign);
 		myURLConnection.setRequestProperty("Digest", "SHA-256=" + encodedBody);
 		myURLConnection.setRequestProperty("Content-Type", "application/json");
-
+		String jsonResponse = "";
 		try (OutputStream os = myURLConnection.getOutputStream()) {
 			byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
 			os.write(input, 0, input.length);
 		}
 
 		int responseCode = myURLConnection.getResponseCode();
-		InputStream inputStr = (responseCode == Status.OK.getStatusCode()) ? myURLConnection.getInputStream() : myURLConnection.getErrorStream();
-		String encoding = connection.getContentEncoding() == null ? "UTF-8" : connection.getContentEncoding();
-		String jsonResponse = IOUtils.toString(inputStr, encoding);
-		System.out.println(jsonResponse);
+		if (responseCode == Status.OK.getStatusCode()) {
+			InputStream inputStr = (responseCode == Status.OK.getStatusCode()) ? myURLConnection.getInputStream() : myURLConnection.getErrorStream();
+			String encoding = connection.getContentEncoding() == null ? "UTF-8" : connection.getContentEncoding();
+			jsonResponse = IOUtils.toString(inputStr, encoding);
+			System.out.println(jsonResponse);
+
+		}
+		else {
+				System.out.println("GovWay-Transaction-ID: "+myURLConnection.getHeaderField("GovWay-Transaction-ID"));
+				InputStream inputStr = myURLConnection.getErrorStream();
+				String encoding = connection.getContentEncoding() == null ? "UTF-8" : connection.getContentEncoding();
+				jsonResponse = IOUtils.toString(inputStr, encoding);
+				System.out.println(jsonResponse);
+			}
 		myURLConnection.disconnect();
 		return jsonResponse;
 	}

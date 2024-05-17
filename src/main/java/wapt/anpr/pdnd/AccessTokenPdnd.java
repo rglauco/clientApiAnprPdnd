@@ -75,7 +75,7 @@ public class AccessTokenPdnd {
 			
 			String idToken = UUID.randomUUID().toString();
 			String jwtToken = GenerateToken.getTokenReqAccess(encodedTrack, clientId, purposeId, idToken, kid, aud);
-			System.out.println(jwtToken);
+			//System.out.println(jwtToken);
 			String jsonInputString = "client_id="+clientId;
 			jsonInputString += "&client_assertion="+jwtToken;
 			jsonInputString += "&client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer";
