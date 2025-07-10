@@ -70,7 +70,7 @@ public class GenerateToken {
     			  .setSubject(clientId)
     			  .setIssuedAt(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
     			  .setExpiration(Date.from(Instant.ofEpochSecond(scadenza)))
-    			  .setNotBefore(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
+    			  //.setNotBefore(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
     			  .setHeaderParam("kid", kid)
     			  .signWith(
     			    SignatureAlgorithm.RS256,
@@ -79,7 +79,6 @@ public class GenerateToken {
     			  .compact();
     	
         return jws;
-        
     }
     
     public static String getAgidJwtSignature(String digest, String clientId, String idToken, String aud) throws Exception {
@@ -110,7 +109,7 @@ public class GenerateToken {
     			  .setSubject(clientId)
     			  .setIssuedAt(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
     			  .setExpiration(Date.from(Instant.ofEpochSecond(scadenza)))
-    			  .setNotBefore(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
+    			  //.setNotBefore(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
     			  .setHeaderParam("typ", "JWT")
     			  .setHeaderParam("kid", properties.getProperty("kidPdnd"))
     			  .signWith(
@@ -151,7 +150,7 @@ public class GenerateToken {
     			  .setSubject(clientId)
     			  .setIssuedAt(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
     			  .setExpiration(Date.from(Instant.ofEpochSecond(scadenza)))
-    			  .setNotBefore(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
+    			  //.setNotBefore(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
     			  .setHeaderParam("typ", "JWT")
     			  .setHeaderParam("kid", properties.getProperty("kidPdnd"))
     			  .signWith(
