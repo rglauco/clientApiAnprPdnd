@@ -18,7 +18,9 @@ import java.util.UUID;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import java.security.KeyStore;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.io.IOUtils;
@@ -43,9 +45,10 @@ public class ClientAnpr {
     public static String fold = "store";
 
     public static void main(String[] args) {
-        // WARNING: Disables all SSL certificate validation.
-        // This should only be used in controlled/test environments.
-        setupTrustManager();
+        if ("true".equalsIgnoreCase(properties.getProperty("disableSslValidation", "false"))) {
+            // WARNING: Disables all SSL certificate validation — test environments only.
+            setupTrustManager();
+        }
 
         try {
             String tokenTrackSignC030 = generateTokenAudit(
@@ -73,9 +76,13 @@ public class ClientAnpr {
                     tokenTrackSignC030, encodedBodyC030, jsonInputStringC030);
             JSONObject jsonObject = new JSONObject(jsonResponseC030);
 
-            String idANPR = jsonObject
+            org.json.JSONArray datiSoggetto = jsonObject
                     .getJSONObject("listaSoggetti")
-                    .getJSONArray("datiSoggetto")
+                    .getJSONArray("datiSoggetto");
+            if (datiSoggetto.length() == 0) {
+                throw new Exception("Soggetto non trovato nella risposta ANPR");
+            }
+            String idANPR = datiSoggetto
                     .getJSONObject(0)
                     .getJSONObject("identificativi")
                     .getString("idANPR");
@@ -220,29 +227,42 @@ public class ClientAnpr {
         String encoding = connection.getContentEncoding() == null ? "UTF-8" : connection.getContentEncoding();
         String jsonResponse;
 
-        if (responseCode == Status.OK.getStatusCode()) {
-            try (InputStream inputStr = myURLConnection.getInputStream()) {
-                jsonResponse = IOUtils.toString(inputStr, encoding);
-                System.out.println("Response (" + responseCode + "): " + jsonResponse);
+        try {
+            if (responseCode == Status.OK.getStatusCode()) {
+                try (InputStream inputStr = myURLConnection.getInputStream()) {
+                    jsonResponse = IOUtils.toString(inputStr, encoding);
+                    System.out.println("Response (" + responseCode + "): " + jsonResponse);
+                }
+            } else {
+                System.out.println("GovWay-Transaction-ID: " +
+                        myURLConnection.getHeaderField("GovWay-Transaction-ID"));
+                try (InputStream inputStr = myURLConnection.getErrorStream()) {
+                    jsonResponse = (inputStr != null)
+                            ? IOUtils.toString(inputStr, encoding)
+                            : "No error stream available";
+                    System.out.println("Error Response (" + responseCode + "): " + jsonResponse);
+                }
             }
-        } else {
-            System.out.println("GovWay-Transaction-ID: " +
-                    myURLConnection.getHeaderField("GovWay-Transaction-ID"));
-            try (InputStream inputStr = myURLConnection.getErrorStream()) {
-                jsonResponse = (inputStr != null)
-                        ? IOUtils.toString(inputStr, encoding)
-                        : "No error stream available";
-                System.out.println("Error Response (" + responseCode + "): " + jsonResponse);
-            }
+        } finally {
+            myURLConnection.disconnect();
         }
 
-        myURLConnection.disconnect();
         return jsonResponse;
     }
 
     private static String generateJsonInputStringC001(String idANPR) {
-        return " { \"idOperazioneClient\": \"1\", \"criteriRicerca\": { \"idANPR\": \"" + idANPR
-                + "\" }, \"datiRichiesta\": { \"dataRiferimentoRichiesta\": \"" + LocalDate.now()
-                + "\", \"motivoRichiesta\": \"1\", \"casoUso\": \"C001\" } }";
+        JSONObject criteriRicerca = new JSONObject();
+        criteriRicerca.put("idANPR", idANPR);
+
+        JSONObject datiRichiesta = new JSONObject();
+        datiRichiesta.put("dataRiferimentoRichiesta", LocalDate.now().toString());
+        datiRichiesta.put("motivoRichiesta", "1");
+        datiRichiesta.put("casoUso", "C001");
+
+        JSONObject root = new JSONObject();
+        root.put("idOperazioneClient", "1");
+        root.put("criteriRicerca", criteriRicerca);
+        root.put("datiRichiesta", datiRichiesta);
+        return root.toString();
     }
 }

@@ -54,17 +54,19 @@ public class AccessTokenPdnd {
 			String proxyHost = properties.getProperty("proxyhost");
 			String proxypwd = properties.getProperty("proxypwd");
 
-			if (proxyHost != null && !proxyHost.isEmpty() && proxypwd != null && !proxypwd.isEmpty()) {
+			if (proxyHost != null && !proxyHost.isEmpty()) {
 				int proxyPort = Integer.parseInt(properties.getProperty("proxyport", "8080"));
 				Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
-				Authenticator authenticator = new Authenticator() {
-					@Override
-					public PasswordAuthentication getPasswordAuthentication() {
-						return new PasswordAuthentication(properties.getProperty("proxyuser", ""),
-								proxypwd.toCharArray());
-					}
-				};
-				Authenticator.setDefault(authenticator);
+				if (proxypwd != null && !proxypwd.isEmpty()) {
+					Authenticator authenticator = new Authenticator() {
+						@Override
+						public PasswordAuthentication getPasswordAuthentication() {
+							return new PasswordAuthentication(properties.getProperty("proxyuser", ""),
+									proxypwd.toCharArray());
+						}
+					};
+					Authenticator.setDefault(authenticator);
+				}
 				connection = url.openConnection(proxy);
 			} else {
 				connection = url.openConnection();

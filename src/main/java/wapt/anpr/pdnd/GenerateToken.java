@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,12 +19,19 @@ import io.jsonwebtoken.SignatureAlgorithm;
 public final class GenerateToken {
 
     private static final Properties properties = new Properties();
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static PrivateKey privateKey;
 
     static {
         try (InputStream f = new FileInputStream("pdnd.properties")) {
             properties.load(f);
         } catch (IOException e) {
             System.err.println("Error loading pdnd.properties: " + e.getMessage());
+        }
+        try {
+            privateKey = TokenUtils.readPrivateKey(ClientAnpr.fold + "/pk.priv");
+        } catch (Exception e) {
+            System.err.println("Error loading private key: " + e.getMessage());
         }
     }
 
@@ -48,8 +56,6 @@ public final class GenerateToken {
         long currentTimeInSecs = TokenUtils.currentTimeInSecs();
         long scadenza = currentTimeInSecs + 300; // 5 minutes
 
-        PrivateKey pk = TokenUtils.readPrivateKey(ClientAnpr.fold + "/" + "pk.priv");
-
         HashMap<String, Object> claims = new HashMap<>();
         claims.put("jti", idToken);
         claims.put("purposeId", purposeId);
@@ -67,7 +73,7 @@ public final class GenerateToken {
                 .setIssuedAt(Date.from(Instant.ofEpochSecond(currentTimeInSecs)))
                 .setExpiration(Date.from(Instant.ofEpochSecond(scadenza)))
                 .setHeaderParam("kid", kid)
-                .signWith(SignatureAlgorithm.RS256, pk)
+                .signWith(SignatureAlgorithm.RS256, privateKey)
                 .compact();
     }
 
@@ -83,9 +89,7 @@ public final class GenerateToken {
      */
     public static String getAgidJwtSignature(String digest, String clientId, String idToken, String aud) throws Exception {
         long currentTimeInSecs = TokenUtils.currentTimeInSecs();
-        long scadenza = currentTimeInSecs + 600000; // 10 minutes
-
-        PrivateKey pk = TokenUtils.readPrivateKey(ClientAnpr.fold + "/" + "pk.priv");
+        long scadenza = currentTimeInSecs + 600; // 10 minutes
 
         HashMap<String, Object> claims = new HashMap<>();
         claims.put("jti", idToken);
@@ -107,7 +111,7 @@ public final class GenerateToken {
                 .setExpiration(Date.from(Instant.ofEpochSecond(scadenza)))
                 .setHeaderParam("typ", "JWT")
                 .setHeaderParam("kid", kid)
-                .signWith(SignatureAlgorithm.RS256, pk)
+                .signWith(SignatureAlgorithm.RS256, privateKey)
                 .compact();
     }
 
@@ -123,16 +127,15 @@ public final class GenerateToken {
      */
     public static String getAgidTrackingSignature(String purposeId, String clientId, String idToken, String aud) throws Exception {
         long currentTimeInSecs = TokenUtils.currentTimeInSecs();
-        long scadenza = currentTimeInSecs + 600000; // 10 minutes
-
-        PrivateKey pk = TokenUtils.readPrivateKey(ClientAnpr.fold + "/" + "pk.priv");
+        long scadenza = currentTimeInSecs + 600; // 10 minutes
 
         HashMap<String, Object> claims = new HashMap<>();
         claims.put("jti", idToken);
         claims.put("purposeId", purposeId);
-        claims.put("dnonce", "1234567890123");
-        claims.put("userID", "User123");
-        claims.put("userLocation", "26.2.12.23");
+        // dnonce: cryptographically random per-call value for replay protection
+        claims.put("dnonce", String.valueOf(Math.abs(SECURE_RANDOM.nextLong()) % 10_000_000_000_000L));
+        claims.put("userID", properties.getProperty("userID", ""));
+        claims.put("userLocation", properties.getProperty("userLocation", ""));
         claims.put("LoA", "LOA3");
 
         String kid = properties.getProperty("kidPdnd");
@@ -146,7 +149,7 @@ public final class GenerateToken {
                 .setExpiration(Date.from(Instant.ofEpochSecond(scadenza)))
                 .setHeaderParam("typ", "JWT")
                 .setHeaderParam("kid", kid)
-                .signWith(SignatureAlgorithm.RS256, pk)
+                .signWith(SignatureAlgorithm.RS256, privateKey)
                 .compact();
     }
 }

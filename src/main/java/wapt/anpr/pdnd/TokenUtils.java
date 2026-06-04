@@ -122,7 +122,7 @@ public final class TokenUtils {
 
     private static String removeBeginEnd(String pem) {
         pem = pem.replaceAll("-----BEGIN (.*)-----", "");
-        pem = pem.replaceAll("-----END (.*)----", "");
+        pem = pem.replaceAll("-----END (.*)-----", "");
         pem = pem.replaceAll("\r\n", "");
         pem = pem.replaceAll("\n", "");
         return pem.trim();
@@ -131,8 +131,7 @@ public final class TokenUtils {
     /**
      * @return the current time in seconds since epoch
      */
-    public static int currentTimeInSecs() {
-        long currentTimeMS = System.currentTimeMillis();
-        return (int) (currentTimeMS / 1000);
+    public static long currentTimeInSecs() {
+        return System.currentTimeMillis() / 1000;
     }
 }
