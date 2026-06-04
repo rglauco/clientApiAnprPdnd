@@ -19,3 +19,14 @@ hs_err_pid*
 target
 .gradle
 build
+
+# IDE - IntelliJ IDEA
+.idea
+
+# Sensitive configuration files (credentials, private keys)
+pdnd.properties
+store/pk.priv
+store/token.p12
+
+# Maven shade plugin output
+dependency-reduced-pom.xml
