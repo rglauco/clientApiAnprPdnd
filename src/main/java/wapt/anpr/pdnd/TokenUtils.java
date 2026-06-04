@@ -1,7 +1,7 @@
 package wapt.anpr.pdnd;
 
-
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -16,53 +16,60 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+public final class TokenUtils {
 
-
-public class TokenUtils {
-
-    public TokenUtils() {
-        // no-op: utility class
+    private TokenUtils() {
+        // utility class: no instances allowed
     }
 
-    //91366318
-    public static PrivateKey getPrivateKeyFromKeystore(String pwd, String alias) throws Exception{
-    	String pathFileKeystore=ClientAnpr.fold+"/"+"token.p12";
-    	String typeKeystore="PKCS12";
-    	String aliascertificato=alias;
-    	String keystorePassword=pwd;
-    	
-    	KeyStore ks = KeyStore.getInstance(typeKeystore);
-    	InputStream readStream = new FileInputStream(pathFileKeystore); 
-    	ks.load(readStream, keystorePassword.toCharArray());
-    	PrivateKey pk = (PrivateKey)ks.getKey(aliascertificato, keystorePassword.toCharArray());
-    	readStream.close();
-    	
-    	return pk;
-    } 
-   
     /**
-     * Read a PEM encoded private key from the classpath
+     * Loads a PrivateKey from a PKCS12 keystore.
      *
-     * @param pemResName - key file resource name
+     * @param pwd  keystore password
+     * @param alias key alias in the keystore
+     * @return PrivateKey
+     * @throws Exception on failure
+     */
+    public static PrivateKey getPrivateKeyFromKeystore(String pwd, String alias) throws Exception {
+        String pathFileKeystore = ClientAnpr.fold + "/" + "token.p12";
+        String typeKeystore = "PKCS12";
+        String aliascertificato = alias;
+        String keystorePassword = pwd;
+
+        KeyStore ks = KeyStore.getInstance(typeKeystore);
+        try (InputStream readStream = new FileInputStream(pathFileKeystore)) {
+            ks.load(readStream, keystorePassword.toCharArray());
+        }
+        PrivateKey pk = (PrivateKey) ks.getKey(aliascertificato, keystorePassword.toCharArray());
+
+        return pk;
+    }
+
+    /**
+     * Read a PEM encoded private key from a file path.
+     *
+     * @param pemResName - key file path
      * @return PrivateKey
      * @throws Exception on decode failure
      */
     public static PrivateKey readPrivateKey(final String pemResName) throws Exception {
-        try (InputStream contentIS = new FileInputStream(pemResName)) {
-            byte[] tmp = new byte[4096];
-            int length = contentIS.read(tmp);
-            return decodePrivateKey(new String(tmp, 0, length, "UTF-8"));
-        }
+        byte[] allBytes = Files.readAllBytes(Paths.get(pemResName));
+        return decodePrivateKey(new String(allBytes, "UTF-8"));
     }
-    
+
+    /**
+     * Loads a PKCS#8 private key from a file containing DER-encoded bytes.
+     *
+     * @param filename path to the PKCS#8 key file
+     * @return PrivateKey
+     * @throws Exception on failure
+     */
     public static PrivateKey getPrivateKeyPkcs8(String filename) throws Exception {
+        byte[] keyBytes = Files.readAllBytes(Paths.get(filename));
 
-    	byte[] keyBytes = Files.readAllBytes(Paths.get(filename));
-
-    	PKCS8EncodedKeySpec spec =
-    			new PKCS8EncodedKeySpec(keyBytes);
-    	KeyFactory kf = KeyFactory.getInstance("RSA");
-    	return kf.generatePrivate(spec);
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePrivate(spec);
     }
 
     /**
@@ -79,7 +86,7 @@ public class TokenUtils {
     }
 
     /**
-     * Decode a PEM encoded private key string to an RSA PrivateKey
+     * Decode a PEM encoded private key string to an RSA PrivateKey.
      *
      * @param pemEncoded - PEM string for private key
      * @return PrivateKey
@@ -94,7 +101,7 @@ public class TokenUtils {
     }
 
     /**
-     * Decode a PEM encoded public key string to an RSA PublicKey
+     * Decode a PEM encoded public key string to an RSA PublicKey.
      *
      * @param pemEncoded - PEM string for private key
      * @return PublicKey
@@ -128,5 +135,4 @@ public class TokenUtils {
         long currentTimeMS = System.currentTimeMillis();
         return (int) (currentTimeMS / 1000);
     }
-
 }
